@@ -16,16 +16,11 @@ int power(int base, int expnt) {
 	return(result);
 }
 
-typedef struct data_wrap {
-	int key;
-	int val;
-} Data_wrap;
-
 typedef struct node {
 	struct node *parent;
 	struct node *l_child;
 	struct node *r_child;
-	Data_wrap * data;
+	int val;
 } Node;
 
 typedef struct m_tree {
@@ -104,6 +99,7 @@ tree *init_tree_struct(int elements) {
 			g_arr[i]->r_child = g_arr[2*i+1];
 		else
 			g_arr[i]->r_child = NULL;
+		g_arr[i]->val = 0;
 	}
 
 	/* put information into tree struct */
@@ -114,6 +110,95 @@ tree *init_tree_struct(int elements) {
 
 	return(t);
 
+}
+
+void insert_node(tree *t, int index, int val) {
+	/* initialize node */
+	t->g_arr[index] = malloc(sizeof(Node));
+	t->g_arr[index]->parent = t->g_arr[index/2];
+	t->g_arr[index]->l_child = NULL;
+	t->g_arr[index]->r_child = NULL;
+	t->g_arr[index]->val = val;
+	/* set pointer from parent */
+	if(index % 2 == 0)
+		t->g_arr[index/2]->l_child = t->g_arr[index];
+	else
+		t->g_arr[index/2]->r_child = t->g_arr[index];
+	t->size++;
+}
+
+void add_layer(tree *t) {
+	int i;
+	int spaces = power(2, t->layers) - 1;
+	t->g_arr = realloc(t->g_arr, sizeof(Node *) * 2*(spaces+1));
+	for(i=spaces+1; i<2*(spaces+1); i++)
+		t->g_arr[i] = NULL;
+	t->layers++;
+}
+
+int add_node(tree *t, int val) {
+	Node *curr_node;
+	int i = 1;
+	int spaces = power(2, t->layers) - 1;
+	/* if graph is empty */
+	if(t->g_arr == NULL) {
+		add_layer(t);
+		insert_node(t, 1, val);
+	} else {
+		curr_node = t->g_arr[1];
+		while(curr_node != NULL) {
+			if(val == curr_node->val) {
+				printf("key exists");
+				return(-1);
+			}
+			else if(val < curr_node->val)
+				i = 2*i;
+			else if(curr_node->val < val)
+				i = 2*i+1;
+			/* check to see where we are */
+			if(spaces < i) {
+				add_layer(t);
+				insert_node(t, i, val);
+				curr_node = NULL;
+			} else if(t->g_arr[i] == NULL) {
+				insert_node(t, i, val);
+				curr_node = NULL;
+			} else {
+				curr_node = t->g_arr[i];
+			}
+		}
+	}
+}
+
+int remove_node(tree *t, int val) {
+	Node *curr_node;
+	int i = 1;
+	/* if graph is empty */
+	if(t->g_arr == NULL) {
+		return(-1);
+	} else {
+		curr_node = t->g_arr[1];
+		while(curr_node != NULL) {
+			if(val == curr_node->val) {
+				/* REMOVE NODE */
+				return(0);
+			}
+			else if(val < curr_node->val) {
+				if(curr_node->l_child == NULL){
+					return(-1);
+				}
+				else
+					i = 2*i;
+			} else if(curr_node->val < val) {
+				if(curr_node->r_child == NULL) {
+					return(-1);
+				}
+				else
+					i = 2*i+1;
+			}
+				curr_node = t->g_arr[i];
+		}
+	}
 }
 
 void delete_tree(tree *t) {
@@ -129,7 +214,12 @@ void delete_tree(tree *t) {
 }
 
 int main(int argc, char const *argv[]) {
-	tree *t = init_tree_struct(10000);
+	tree *t = init_tree_struct(5);
+	add_node(t, 2);
+	if(remove_node(t, 2) == 0)
+		printf("remove success\n");
+	else
+		printf("remove fail\n");
 	delete_tree(t);
 	return(0);
 }
