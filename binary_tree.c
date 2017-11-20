@@ -72,12 +72,11 @@ tree *init_tree_struct(int elements) {
 		}
 
 	}
-
 	/* connect the graph */
-	for(i=1; i<=elements; i++) {
+	for(i=1; i<arr_size; i++) {
 		/* skip if there is no element here */
 		if(g_arr[i] == NULL)
-			break;
+			continue;
 		/* connect parent if not root */
 		if(i!=1)
 			g_arr[i]->parent = g_arr[i/2];
@@ -109,7 +108,6 @@ tree *init_tree_struct(int elements) {
 	t->g_arr = g_arr;
 
 	return(t);
-
 }
 
 void insert_node(tree *t, int index, int val) {
@@ -170,6 +168,51 @@ int add_node(tree *t, int val) {
 	}
 }
 
+void delete_node(tree *t, int index) {
+	Node *node_ptr = t->g_arr[index];
+	Node *child, *min_node;
+	int min_node_index;
+	if((node_ptr->l_child == NULL) && (node_ptr->r_child == NULL)) {
+		/* no children */
+		if(index % 2 == 0) {
+			t->g_arr[index/2]->l_child = NULL;
+			free(t->g_arr[index]);
+			t->g_arr[index] = NULL;
+		} else {
+			t->g_arr[index/2]->r_child = NULL;
+			free(t->g_arr[index]);
+			t->g_arr[index] = NULL;
+		}
+	} else if((node_ptr->l_child != NULL) != (node_ptr->r_child != NULL)) {
+		/* one child */
+		child = node_ptr->l_child != NULL?
+				node_ptr->l_child: node_ptr->r_child;
+		if(index % 2 == 0) {
+			t->g_arr[index/2]->l_child = child;
+			free(t->g_arr[index]);
+			t->g_arr[index] = NULL;
+		} else {
+			t->g_arr[index/2]->r_child = child;
+			free(t->g_arr[index]);
+			t->g_arr[index] = NULL;
+		}
+		/* raise all elements by one level */
+	} else {
+		/* two children */
+		min_node = node_ptr->r_child;
+		min_node_index = 2*index+1;
+		while(min_node->l_child != NULL) {
+			min_node = min_node->l_child;
+			min_node_index *= 2;
+		}
+		node_ptr->val = min_node->val;
+		delete_node(t, min_node_index);
+	}
+	t->size--;
+	/* delete last layer if possible */
+	return;
+}
+
 int remove_node(tree *t, int val) {
 	Node *curr_node;
 	int i = 1;
@@ -180,7 +223,7 @@ int remove_node(tree *t, int val) {
 		curr_node = t->g_arr[1];
 		while(curr_node != NULL) {
 			if(val == curr_node->val) {
-				/* REMOVE NODE */
+				delete_node(t, i);
 				return(0);
 			}
 			else if(val < curr_node->val) {
@@ -201,6 +244,22 @@ int remove_node(tree *t, int val) {
 	}
 }
 
+void print_tree(tree *t) {
+	int i, j, ls;
+	printf("### BEGIN PRINTING TREE ###\n");
+	for(i=0; i<t->layers; i++) {
+		ls = power(2, i);
+		for(j=ls; j<2*ls; j++) {
+			if(t->g_arr[j] != NULL)
+				printf("%d", t->g_arr[j]->val);
+			else
+				printf("X");
+		}
+		printf("\n");
+	}
+	printf("### END PRINTING TREE ###\n");
+}
+
 void delete_tree(tree *t) {
 	int i;
 	int spaces = power(2, t->layers) - 1;
@@ -215,11 +274,18 @@ void delete_tree(tree *t) {
 
 int main(int argc, char const *argv[]) {
 	tree *t = init_tree_struct(5);
+	print_tree(t);
+	add_node(t, 3);
+	print_tree(t);
 	add_node(t, 2);
-	if(remove_node(t, 2) == 0)
+	print_tree(t);
+	add_node(t, 4);
+	print_tree(t);
+	if(remove_node(t, 3) == 0)
 		printf("remove success\n");
 	else
 		printf("remove fail\n");
+	print_tree(t);
 	delete_tree(t);
 	return(0);
 }
