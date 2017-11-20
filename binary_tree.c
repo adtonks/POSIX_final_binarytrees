@@ -29,7 +29,8 @@ typedef struct m_tree {
 	Node **g_arr;
 } tree;
 
-tree *init_tree_struct(int elements) {
+void init_tree_struct(tree *t, int elements) {
+	printf("create tree with %d node\n", elements);
 	// calculate smallest number of layers to store elements
 	int layers;
 	int arr_size;
@@ -39,18 +40,17 @@ tree *init_tree_struct(int elements) {
 
 	/* size of layer */
 	int i, j, ls;
-	tree *t;
 
 	for(layers = 1; power(2, layers) - 1 < elements; layers++);
 
 	/* initialize graph array and initialize all values */
 	arr_size = power(2, layers);
-	Node **g_arr = malloc(sizeof(Node *) * arr_size);
+	t->g_arr = realloc(t->g_arr, sizeof(Node *) * arr_size);
 	for(i=0; i<arr_size; i++)
-		g_arr[i] = NULL;
+		t->g_arr[i] = NULL;
 
 	// initialize root node
-	g_arr[1] = malloc(sizeof(Node));
+	t->g_arr[1] = malloc(sizeof(Node));
 	elem_init++;
 
 	for(i=1; i<layers; i++) {
@@ -58,12 +58,12 @@ tree *init_tree_struct(int elements) {
 		jump_size = ls/2;
 		while(0 < jump_size) {
 			for(j=ls; (j<ls+ls/2) && (elem_init < elements); j+=jump_size) {
-				if(g_arr[j] == NULL) {
+				if(t->g_arr[j] == NULL) {
 					/* initialize the boxes */
-					g_arr[j] = malloc(sizeof(Node));
+					t->g_arr[j] = malloc(sizeof(Node));
 					elem_init++;
 					if(elem_init < elements) {
-						g_arr[j+ls/2] = malloc(sizeof(Node));
+						t->g_arr[j+ls/2] = malloc(sizeof(Node));
 						elem_init ++;
 					}
 				}
@@ -75,42 +75,79 @@ tree *init_tree_struct(int elements) {
 	/* connect the graph */
 	for(i=1; i<arr_size; i++) {
 		/* skip if there is no element here */
-		if(g_arr[i] == NULL)
+		if(t->g_arr[i] == NULL)
 			continue;
 		/* connect parent if not root */
 		if(i!=1)
-			g_arr[i]->parent = g_arr[i/2];
+			t->g_arr[i]->parent = t->g_arr[i/2];
 		else
-			g_arr[i]->parent = NULL;
+			t->g_arr[i]->parent = NULL;
 		/* connect left child */
 		/* check if node is in last layer */
 		if(power(2, layers-1) <= i)
-			g_arr[i]->l_child = NULL;
-		else if(g_arr[2*i] != NULL)
-			g_arr[i]->l_child = g_arr[2*i];
+			t->g_arr[i]->l_child = NULL;
+		else if(t->g_arr[2*i] != NULL)
+			t->g_arr[i]->l_child = t->g_arr[2*i];
 		else
-			g_arr[i]->l_child = NULL;
+			t->g_arr[i]->l_child = NULL;
 		/* connect right child */
 		/* check if node is in last layer */
 		if(power(2, layers-1) <= i)
-			g_arr[i]->r_child = NULL;
-		else if(g_arr[2*i+1] != NULL)
-			g_arr[i]->r_child = g_arr[2*i+1];
+			t->g_arr[i]->r_child = NULL;
+		else if(t->g_arr[2*i+1] != NULL)
+			t->g_arr[i]->r_child = t->g_arr[2*i+1];
 		else
-			g_arr[i]->r_child = NULL;
-		g_arr[i]->val = 0;
+			t->g_arr[i]->r_child = NULL;
+		t->g_arr[i]->val = 0;
 	}
 
 	/* put information into tree struct */
-	t = malloc(sizeof(tree));
-	t->size = elements;
 	t->layers = layers;
-	t->g_arr = g_arr;
 
-	return(t);
+	return;
+}
+
+int cmp_fun (const void *a, const void *b) {
+   return(*(int *) a - *(int *) b);
+}
+
+void paste_vals(tree *t, Node *curr_node, int val_arr[], int *pasted) {
+	if(curr_node == NULL)
+		return;
+	/* process left subtree */
+	paste_vals(t, curr_node->l_child, val_arr, pasted);
+	/* process this node */
+	curr_node->val = val_arr[*pasted];
+	(*pasted)++;
+	/* process right subtree */
+	paste_vals(t, curr_node->r_child, val_arr, pasted);
+}
+
+void balance_tree(tree *t) {
+	printf("%d %d\n", t->layers, t->size);
+	if(t->layers <= 2)
+		return;
+	int val_arr[t->size];
+	int i;
+	int j=0;
+	int arr_size = power(2, t->layers);
+	int pasted = 0;
+	/* copy vals */
+	for(i=1; i<arr_size; i++) {
+		if(t->g_arr[i] != NULL) {
+			val_arr[j] = t->g_arr[i]->val;
+			free(t->g_arr[i]);
+			t->g_arr[i] = NULL;
+			j++;
+		}
+	}
+	init_tree_struct(t, t->size);
+	qsort(val_arr, t->size, sizeof(int), cmp_fun);
+	paste_vals(t, t->g_arr[1], val_arr, &pasted);
 }
 
 void insert_node(tree *t, int index, int val) {
+	printf("node insert\n");
 	/* initialize node */
 	t->g_arr[index] = malloc(sizeof(Node));
 	if(index != 1)
@@ -122,12 +159,14 @@ void insert_node(tree *t, int index, int val) {
 	t->g_arr[index]->val = val;
 	/* set pointer from parent */
 	if(index == 1)
-		return;
+		;
 	else if(index % 2 == 0)
 		t->g_arr[index/2]->l_child = t->g_arr[index];
 	else
 		t->g_arr[index/2]->r_child = t->g_arr[index];
 	t->size++;
+	printf("size inc %d\n", t->size);
+	return;
 }
 
 void add_layer(tree *t) {
@@ -242,6 +281,7 @@ void delete_node(tree *t, int index) {
 		}
 		node_ptr->val = min_node->val;
 		delete_node(t, min_node_index);
+		return;
 	}
 	t->size--;
 	/* delete last layer if possible */
@@ -288,6 +328,21 @@ int remove_node(tree *t, int val) {
 	}
 }
 
+void print_nodes_at_level(tree *t, int level) {
+	int ls, j;
+	if((level<0) || t->layers <= level) {
+		printf("Level does not exist\n");
+		return;
+	}
+	ls = power(2, level);
+	for(j=ls; j<2*ls; j++) {
+		if(t->g_arr[j] != NULL)
+			printf("(%d) ", t->g_arr[j]->val);
+	}
+	printf("\n");
+	return;
+}
+
 void print_tree(tree *t) {
 	int i, j, k, ls;
 	printf("### BEGIN PRINTING TREE ###\n");
@@ -310,8 +365,8 @@ void print_tree(tree *t) {
 
 void delete_tree(tree *t) {
 	int i;
-	int spaces = power(2, t->layers) - 1;
-	for(i=1; i<=spaces; i++) {
+	int arr_size = power(2, t->layers);
+	for(i=1; i<arr_size; i++) {
 		/* free data */
 		if(t->g_arr[i] != NULL)
 			free(t->g_arr[i]);
@@ -442,7 +497,20 @@ int main(int argc, char const *argv[]) {
 	print_tree(t);
 	add_node(t, 1);
 	print_tree(t);
+	balance_tree(t);
 	print_tree(t);
+	print_tree(t);
+	add_node(t, 8);
+	print_tree(t);
+	print_tree(t);
+	add_node(t, 10);
+	print_tree(t);
+	balance_tree(t);
+	print_tree(t);
+	print_nodes_at_level(t, 0);
+	print_nodes_at_level(t, 1);
+	print_nodes_at_level(t, 2);
+	print_nodes_at_level(t, 3);
 	delete_tree(t);
 	return(0);
 }
