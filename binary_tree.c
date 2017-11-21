@@ -8,7 +8,104 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <wchar.h>
+#include <time.h>
+#include "binary_tree.h"
+
+int main(int argc, char const *argv[]) {
+	tree *t = create_new_tree();
+	tree *t2;
+	tree *t3;
+	print_tree(t);
+	add_node(t, 3);
+	print_tree(t);
+	add_node(t, 1);
+	print_tree(t);
+	add_node(t, 4);
+	print_tree(t);
+	add_node(t, 2);
+	print_tree(t);
+	edit_node(t, 1, 5);
+	print_tree(t);
+	if(remove_node(t, 3) == 0)
+		printf("3 remove success\n");
+	else
+		printf("3 remove fail\n");
+	print_tree(t);
+	if(remove_node(t, 4) == 0)
+		printf("4 remove success\n");
+	else
+		printf("4 remove fail\n");
+	print_tree(t);
+	if(remove_node(t, 1) == 0)
+		printf("1 remove success\n");
+	else
+		printf("1 remove fail\n");
+	print_tree(t);
+	if(remove_node(t, 2) == 0)
+		printf("2 remove success\n");
+	else
+		printf("2 remove fail\n");
+	print_tree(t);
+	if(remove_node(t, 1) == 0)
+		printf("1 remove success\n");
+	else
+		printf("1 remove fail\n");
+	add_node(t, 432);
+	add_node(t, 213);
+	add_node(t, 23);
+	add_node(t, 343);
+	add_node(t, -23);
+	add_node(t, -1);
+	add_node(t, 500);
+	print_tree(t);
+	add_node(t, 1);
+	print_tree(t);
+	balance_tree(t);
+	print_tree(t);
+	print_tree(t);
+	add_node(t, 8);
+	print_tree(t);
+	print_tree(t);
+	add_node(t, 10);
+	print_tree(t);
+	add_node(t, 543);
+	add_node(t, 23);
+	add_node(t, 3);
+	add_node(t, -4);
+	add_node(t, -43);
+	add_node(t, -10);
+	add_node(t, -32);
+	add_node(t, 54);
+	add_node(t, 834);
+	add_node(t, -34);
+	add_node(t, -5);
+	add_node(t, -44);
+	add_node(t, 420);
+	add_node(t, 432);
+	add_node(t, 476);
+	add_node(t, -65);
+	add_node(t, 737);
+	add_node(t, -99);
+	balance_tree(t);
+	print_tree(t);
+	printf("Shortest distance is %d\n",
+			shortest_distance(t, 54, 8));
+	print_nodes_at_level(t, 0);
+	print_nodes_at_level(t, 1);
+	print_nodes_at_level(t, 2);
+	print_nodes_at_level(t, 3);
+	printf("Depth of -34 is %d\n", find_depth(t, -34));
+	printf("Depth of 4124 is %d\n", find_depth(t, 4124));
+	printf("Depth of 5 is %d\n", find_depth(t, 5));
+	delete_tree(t);
+	t2 = create_new_tree();
+	printf("Depth of 5 is %d\n", find_depth(t2, 5));
+	delete_tree(t2);
+	t3 = generate_random_tree(31);
+	print_tree(t3);
+	delete_tree(t3);
+	return(0);
+}
 
 int power(int base, int expnt) {
 	int result = 1;
@@ -17,21 +114,8 @@ int power(int base, int expnt) {
 	return(result);
 }
 
-typedef struct node {
-	struct node *parent;
-	struct node *l_child;
-	struct node *r_child;
-	int val;
-} Node;
-
-typedef struct m_tree {
-	int size;
-	int layers;
-	Node **g_arr;
-} tree;
-
 void init_tree_struct(tree *t, int elements) {
-	// calculate smallest number of layers to store elements
+	/* calculate smallest number of layers to store elements */
 	int layers;
 	int arr_size;
 	/* number of elements initialized */
@@ -45,7 +129,7 @@ void init_tree_struct(tree *t, int elements) {
 	t->g_arr = realloc(t->g_arr, sizeof(Node *) * arr_size);
 	for(i=0; i<arr_size; i++)
 		t->g_arr[i] = NULL;
-	// initialize root node
+	/* initialize root node */
 	t->g_arr[1] = malloc(sizeof(Node));
 	elem_init++;
 	for(i=1; i<layers; i++) {
@@ -123,8 +207,8 @@ void balance_tree(tree *t) {
 	int val_arr[t->size];
 	int i;
 	int j=0;
-	int arr_size = power(2, t->layers);
 	int pasted = 0;
+	int arr_size = power(2, t->layers);
 	/* copy vals */
 	for(i=1; i<arr_size; i++) {
 		if(t->g_arr[i] != NULL) {
@@ -322,6 +406,7 @@ int remove_node(tree *t, int val) {
 				curr_node = t->g_arr[i];
 		}
 	}
+	return(-1);
 }
 
 void print_nodes_at_level(tree *t, int level) {
@@ -409,7 +494,6 @@ void delete_tree(tree *t) {
 
 int check_node(tree *t, int index, int oldval, int newval) {
 	Node *node_ptr = t->g_arr[index];
-	int test_flag = 1;
 	if(node_ptr->parent != NULL) {
 		if(index % 2 == 0) {
 			/* this is a left child */
@@ -469,6 +553,7 @@ int edit_node(tree *t, int oldval, int newval) {
 				curr_node = t->g_arr[i];
 		}
 	}
+	return(-1);
 }
 
 tree *create_new_tree() {
@@ -510,27 +595,51 @@ int find_depth(tree *t, int val) {
 			}
 		}
 	}
+	return(-1);
+}
+
+int DFS_mod(tree *t, Node *node_ptr, int node2, int dist,
+		int *found, Node *prev_ptr) {
+	if(node_ptr->val == node2) {
+		*found = dist;
+	} else {
+		if((node_ptr->l_child != NULL) &&
+				(node_ptr->l_child != prev_ptr) &&
+				(*found == -1)) {
+			DFS_mod(t, node_ptr->l_child, node2, dist+1, found, node_ptr);
+		}
+		if((node_ptr->parent != NULL) &&
+				(node_ptr->parent != prev_ptr) &&
+				(*found == -1)) {
+			DFS_mod(t, node_ptr->parent, node2, dist+1, found, node_ptr);
+		}
+		if((node_ptr->r_child != NULL) &&
+				(node_ptr->r_child != prev_ptr) &&
+				(*found == -1)) {
+			DFS_mod(t, node_ptr->r_child, node2, dist+1, found, node_ptr);
+		}
+	}
+	return(*found);
 }
 
 int shortest_distance(tree *t, int node1, int node2) {
-	Node *curr_node;
-	int dist = 0;
-	Node *node1_ptr
+	int found = -1;
+	Node *node1_ptr;
 	/* if graph is empty */
 	if(t->layers == 0) {
 		return(-1);
 	} else {
 		node1_ptr = t->g_arr[1];
 		while(node1_ptr != NULL) {
-			if(val == node1_ptr->val) {
+			if(node1_ptr->val == node1) {
 				break;
 			}
-			else if(val < node1_ptr->val) {
+			else if(node1 < node1_ptr->val) {
 				if(node1_ptr->l_child == NULL)
 					return(-1);
 				else
 					node1_ptr = node1_ptr->l_child;
-			} else if(node1_ptr->val < val) {
+			} else if(node1_ptr->val < node1) {
 				if(node1_ptr->r_child == NULL)
 					return(-1);
 				else
@@ -538,97 +647,42 @@ int shortest_distance(tree *t, int node1, int node2) {
 			}
 		}
 	}
-
 	/* DFS on node1_ptr */
-
+	return(DFS_mod(t, node1_ptr, node2, 0, &found, NULL));
 }
 
-int main(int argc, char const *argv[]) {
+tree *generate_from_array(int *array, int size) {
+	int pasted = 0;
 	tree *t = create_new_tree();
-	print_tree(t);
-	add_node(t, 3);
-	print_tree(t);
-	add_node(t, 1);
-	print_tree(t);
-	add_node(t, 4);
-	print_tree(t);
-	add_node(t, 2);
-	print_tree(t);
-	edit_node(t, 1, 5);
-	print_tree(t);
-	if(remove_node(t, 3) == 0)
-		printf("3 remove success\n");
-	else
-		printf("3 remove fail\n");
-	print_tree(t);
-	if(remove_node(t, 4) == 0)
-		printf("4 remove success\n");
-	else
-		printf("4 remove fail\n");
-	print_tree(t);
-	if(remove_node(t, 1) == 0)
-		printf("1 remove success\n");
-	else
-		printf("1 remove fail\n");
-	print_tree(t);
-	if(remove_node(t, 2) == 0)
-		printf("2 remove success\n");
-	else
-		printf("2 remove fail\n");
-	print_tree(t);
-	if(remove_node(t, 1) == 0)
-		printf("1 remove success\n");
-	else
-		printf("1 remove fail\n");
-	add_node(t, 432);
-	add_node(t, 213);
-	add_node(t, 23);
-	add_node(t, 343);
-	add_node(t, -23);
-	add_node(t, -1);
-	add_node(t, 500);
-	print_tree(t);
-	add_node(t, 1);
-	print_tree(t);
-	balance_tree(t);
-	print_tree(t);
-	print_tree(t);
-	add_node(t, 8);
-	print_tree(t);
-	print_tree(t);
-	add_node(t, 10);
-	print_tree(t);
-	add_node(t, 543);
-	add_node(t, 23);
-	add_node(t, 3);
-	add_node(t, -4);
-	add_node(t, -43);
-	add_node(t, -10);
-	add_node(t, -32);
-	add_node(t, 54);
-	add_node(t, 834);
-	add_node(t, -34);
-	add_node(t, -5);
-	add_node(t, -44);
-	add_node(t, 420);
-	add_node(t, 432);
-	add_node(t, 476);
-	add_node(t, -65);
-	add_node(t, 737);
-	add_node(t, -99);
-	balance_tree(t);
-	print_tree(t);
-	print_nodes_at_level(t, 0);
-	print_nodes_at_level(t, 1);
-	print_nodes_at_level(t, 2);
-	print_nodes_at_level(t, 3);
-	printf("depth of -34 is %d\n", find_depth(t, -34));
-	printf("depth of 4124 is %d\n", find_depth(t, 4124));
-	printf("depth of 5 is %d\n", find_depth(t, 5));
-	delete_tree(t);
-	tree *t2 = create_new_tree();
-	printf("depth of 5 is %d\n", find_depth(t2, 5));
-	delete_tree(t2);
+	init_tree_struct(t, size);
+	if(size != 0) {
+		qsort(array, size, sizeof(int), cmp_fun);
+		paste_vals(t, t->g_arr[1], array, &pasted);
+	}
+	return(t);
+}
 
-	return(0);
+tree *generate_random_tree(int size) {
+	int val_arr[size];
+	tree *t;
+	int i, j;
+	int rep_flag = 0;
+	srand(time(NULL));
+	for(i=0; i<size; i++) {
+		while(1) {
+			rep_flag = 0;
+			val_arr[i] = rand() % (10*size);
+			/* check for duplicates */
+			for(j=0; j<i; j++) {
+				if(val_arr[j] == val_arr[i]) {
+					rep_flag = 1;
+					break;
+				}
+			}
+			if(rep_flag == 0)
+				break;
+		}
+	}
+	t = generate_from_array(val_arr, size);
+	return(t);
 }
