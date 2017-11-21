@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <wchar.h>
 
 int power(int base, int expnt) {
 	int result = 1;
@@ -30,29 +31,23 @@ typedef struct m_tree {
 } tree;
 
 void init_tree_struct(tree *t, int elements) {
-	printf("create tree with %d node\n", elements);
 	// calculate smallest number of layers to store elements
 	int layers;
 	int arr_size;
 	/* number of elements initialized */
 	int elem_init = 0;
 	int jump_size;
-
 	/* size of layer */
 	int i, j, ls;
-
 	for(layers = 1; power(2, layers) - 1 < elements; layers++);
-
 	/* initialize graph array and initialize all values */
 	arr_size = power(2, layers);
 	t->g_arr = realloc(t->g_arr, sizeof(Node *) * arr_size);
 	for(i=0; i<arr_size; i++)
 		t->g_arr[i] = NULL;
-
 	// initialize root node
 	t->g_arr[1] = malloc(sizeof(Node));
 	elem_init++;
-
 	for(i=1; i<layers; i++) {
 		ls = power(2, i);
 		jump_size = ls/2;
@@ -100,10 +95,8 @@ void init_tree_struct(tree *t, int elements) {
 			t->g_arr[i]->r_child = NULL;
 		t->g_arr[i]->val = 0;
 	}
-
 	/* put information into tree struct */
 	t->layers = layers;
-
 	return;
 }
 
@@ -121,10 +114,10 @@ void paste_vals(tree *t, Node *curr_node, int val_arr[], int *pasted) {
 	(*pasted)++;
 	/* process right subtree */
 	paste_vals(t, curr_node->r_child, val_arr, pasted);
+	return;
 }
 
 void balance_tree(tree *t) {
-	printf("%d %d\n", t->layers, t->size);
 	if(t->layers <= 2)
 		return;
 	int val_arr[t->size];
@@ -144,10 +137,10 @@ void balance_tree(tree *t) {
 	init_tree_struct(t, t->size);
 	qsort(val_arr, t->size, sizeof(int), cmp_fun);
 	paste_vals(t, t->g_arr[1], val_arr, &pasted);
+	return;
 }
 
 void insert_node(tree *t, int index, int val) {
-	printf("node insert\n");
 	/* initialize node */
 	t->g_arr[index] = malloc(sizeof(Node));
 	if(index != 1)
@@ -165,18 +158,17 @@ void insert_node(tree *t, int index, int val) {
 	else
 		t->g_arr[index/2]->r_child = t->g_arr[index];
 	t->size++;
-	printf("size inc %d\n", t->size);
 	return;
 }
 
 void add_layer(tree *t) {
 	int i;
 	int spaces = power(2, t->layers) - 1;
-
 	t->g_arr = realloc(t->g_arr, sizeof(Node *) * 2*(spaces+1));
 	for(i=spaces+1; i<2*(spaces+1); i++)
 		t->g_arr[i] = NULL;
 	t->layers++;
+	return;
 }
 
 int add_node(tree *t, int val) {
@@ -191,7 +183,6 @@ int add_node(tree *t, int val) {
 		curr_node = t->g_arr[1];
 		while(curr_node != NULL) {
 			if(val == curr_node->val) {
-				printf("key exists\n");
 				return(-1);
 			}
 			else if(val < curr_node->val)
@@ -211,6 +202,8 @@ int add_node(tree *t, int val) {
 			}
 		}
 	}
+	balance_tree(t);
+	return(0);
 }
 
 void paste_nodes(tree *t, Node *curr_node, int index) {
@@ -222,6 +215,7 @@ void paste_nodes(tree *t, Node *curr_node, int index) {
 	t->g_arr[index] = curr_node;
 	/* process right subtree */
 	paste_nodes(t, curr_node->r_child, 2*index+1);
+	return;
 }
 
 void repack_array(tree *t) {
@@ -233,6 +227,7 @@ void repack_array(tree *t) {
 	for(i=1; i<=spaces; i++)
 		t->g_arr[i] = NULL;
 	paste_nodes(t, curr_node, index);
+	return;
 }
 
 void delete_node(tree *t, int index) {
@@ -308,6 +303,7 @@ int remove_node(tree *t, int val) {
 		while(curr_node != NULL) {
 			if(val == curr_node->val) {
 				delete_node(t, i);
+				balance_tree(t);
 				return(0);
 			}
 			else if(val < curr_node->val) {
@@ -338,6 +334,9 @@ void print_nodes_at_level(tree *t, int level) {
 	for(j=ls; j<2*ls; j++) {
 		if(t->g_arr[j] != NULL)
 			printf("(%d) ", t->g_arr[j]->val);
+		else
+			/* specification says to always print 2^level nodes */
+			printf("(empty) ");
 	}
 	printf("\n");
 	return;
@@ -348,31 +347,64 @@ void print_tree(tree *t) {
 	printf("### BEGIN PRINTING TREE ###\n");
 	for(i=0; i<t->layers; i++) {
 		ls = power(2, i);
+		/* print branches */
+		if(i != 0) {
+			for(j=0; j<power(2, t->layers-i-1); j++)
+				printf("   ");
+			for(j=ls; j<2*ls; j++) {
+				printf(" | ");
+				if(j != 2*ls-1) {
+					for(k=0; k<power(2, t->layers-i)-1; k++) {
+						if(j % 2 == 1)
+							printf("   ");
+						else
+							printf("¯¯¯");
+					}
+				}
+			}
+			printf("\n");
+		}
 		for(j=0; j<power(2, t->layers-i-1); j++)
-			printf(" ");
+			printf("   ");
 		for(j=ls; j<2*ls; j++) {
 			if(t->g_arr[j] != NULL)
-				printf("%d", t->g_arr[j]->val);
+				printf("%03d", t->g_arr[j]->val);
 			else
-				printf("X");
-			for(k=0; k<power(2, t->layers-i-1); k++)
-				printf(" ");
+				printf("   ");
+			if(j != 2*ls-1) {
+				for(k=0; k<power(2, t->layers-i)-1; k++)
+					printf("   ");
+			}
 		}
 		printf("\n");
+		if(i != t->layers-1) {
+			for(j=0; j<power(2, t->layers-i-1); j++)
+				printf("   ");
+			for(j=ls; j<2*ls; j++) {
+					printf(" | ");
+					if(j != 2*ls-1) {
+						for(k=0; k<power(2, t->layers-i)-1; k++)
+							printf("   ");
+					}
+			}
+			printf("\n");
+		}
 	}
 	printf("### END PRINTING TREE ###\n");
+	return;
 }
 
 void delete_tree(tree *t) {
 	int i;
 	int arr_size = power(2, t->layers);
 	for(i=1; i<arr_size; i++) {
-		/* free data */
+		/* free nodes */
 		if(t->g_arr[i] != NULL)
 			free(t->g_arr[i]);
 	}
 	free(t->g_arr);
 	free(t);
+	return;
 }
 
 int check_node(tree *t, int index, int oldval, int newval) {
@@ -411,16 +443,13 @@ int edit_node(tree *t, int oldval, int newval) {
 		while(curr_node != NULL) {
 			if(oldval == curr_node->val) {
 				if(check_node(t, i, oldval, newval)) {
-					printf("can overwrite\n");
 					curr_node->val = newval;
 					return(0);
 				} else {
-					printf("cannot overwrite\n");
 					/* check if newval exists */
 					if(add_node(t, newval) == -1)
 						return(-3);
 					remove_node(t, oldval);
-					/* REBALANCE TREE */
 					return(-2);
 				}
 			}
@@ -451,6 +480,69 @@ tree *create_new_tree() {
 	return(t);
 }
 
+int find_depth(tree *t, int val) {
+	Node *curr_node;
+	int depth = 0;
+	/* if graph is empty */
+	if(t->layers == 0) {
+		return(-1);
+	} else {
+		curr_node = t->g_arr[1];
+		while(curr_node != NULL) {
+			if(val == curr_node->val) {
+				return(depth);
+				return(0);
+			}
+			else if(val < curr_node->val) {
+				if(curr_node->l_child == NULL) {
+					return(-1);
+				} else {
+					depth++;
+					curr_node = curr_node->l_child;
+				}
+			} else if(curr_node->val < val) {
+				if(curr_node->r_child == NULL) {
+					return(-1);
+				} else {
+					depth++;
+					curr_node = curr_node->r_child;
+				}
+			}
+		}
+	}
+}
+
+int shortest_distance(tree *t, int node1, int node2) {
+	Node *curr_node;
+	int dist = 0;
+	Node *node1_ptr
+	/* if graph is empty */
+	if(t->layers == 0) {
+		return(-1);
+	} else {
+		node1_ptr = t->g_arr[1];
+		while(node1_ptr != NULL) {
+			if(val == node1_ptr->val) {
+				break;
+			}
+			else if(val < node1_ptr->val) {
+				if(node1_ptr->l_child == NULL)
+					return(-1);
+				else
+					node1_ptr = node1_ptr->l_child;
+			} else if(node1_ptr->val < val) {
+				if(node1_ptr->r_child == NULL)
+					return(-1);
+				else
+					node1_ptr = node1_ptr->r_child;
+			}
+		}
+	}
+
+	/* DFS on node1_ptr */
+
+}
+
 int main(int argc, char const *argv[]) {
 	tree *t = create_new_tree();
 	print_tree(t);
@@ -467,33 +559,34 @@ int main(int argc, char const *argv[]) {
 	if(remove_node(t, 3) == 0)
 		printf("3 remove success\n");
 	else
-		printf("remove fail\n");
+		printf("3 remove fail\n");
 	print_tree(t);
 	if(remove_node(t, 4) == 0)
 		printf("4 remove success\n");
 	else
-		printf("remove fail\n");
+		printf("4 remove fail\n");
 	print_tree(t);
 	if(remove_node(t, 1) == 0)
 		printf("1 remove success\n");
 	else
-		printf("remove fail\n");
+		printf("1 remove fail\n");
 	print_tree(t);
-	printf("root val %d\n", t->g_arr[1]->val);
-	if(t->g_arr[1]->l_child == NULL)
-		printf("left null\n");
-	if(t->g_arr[1]->r_child == NULL)
-		printf("right null\n");
 	if(remove_node(t, 2) == 0)
 		printf("2 remove success\n");
 	else
-		printf("remove fail\n");
+		printf("2 remove fail\n");
 	print_tree(t);
 	if(remove_node(t, 1) == 0)
 		printf("1 remove success\n");
 	else
-		printf("remove fail\n");
-	add_node(t, 3);
+		printf("1 remove fail\n");
+	add_node(t, 432);
+	add_node(t, 213);
+	add_node(t, 23);
+	add_node(t, 343);
+	add_node(t, -23);
+	add_node(t, -1);
+	add_node(t, 500);
 	print_tree(t);
 	add_node(t, 1);
 	print_tree(t);
@@ -505,12 +598,37 @@ int main(int argc, char const *argv[]) {
 	print_tree(t);
 	add_node(t, 10);
 	print_tree(t);
+	add_node(t, 543);
+	add_node(t, 23);
+	add_node(t, 3);
+	add_node(t, -4);
+	add_node(t, -43);
+	add_node(t, -10);
+	add_node(t, -32);
+	add_node(t, 54);
+	add_node(t, 834);
+	add_node(t, -34);
+	add_node(t, -5);
+	add_node(t, -44);
+	add_node(t, 420);
+	add_node(t, 432);
+	add_node(t, 476);
+	add_node(t, -65);
+	add_node(t, 737);
+	add_node(t, -99);
 	balance_tree(t);
 	print_tree(t);
 	print_nodes_at_level(t, 0);
 	print_nodes_at_level(t, 1);
 	print_nodes_at_level(t, 2);
 	print_nodes_at_level(t, 3);
+	printf("depth of -34 is %d\n", find_depth(t, -34));
+	printf("depth of 4124 is %d\n", find_depth(t, 4124));
+	printf("depth of 5 is %d\n", find_depth(t, 5));
 	delete_tree(t);
+	tree *t2 = create_new_tree();
+	printf("depth of 5 is %d\n", find_depth(t2, 5));
+	delete_tree(t2);
+
 	return(0);
 }
